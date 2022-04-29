@@ -1,0 +1,64 @@
+.include "beta.uasm" 
+	BR(Start)
+	// the array to be sorted
+A:      
+	LONG(0xB6)				// A[0] – Address A 
+	LONG(0x11)				// A[1] – Address A+4 = A+4*1
+	LONG(0xE3)				// A[2] – Address A+8 = A+4*2
+	LONG(0x9)				// A[3] – Address A+12 = A+4*3
+	LONG(0xA)				// A[4] - Address A+16 = A+4*4
+	LONG(0x1C)				// A[5] – Address A+20 = A+4*5
+	LONG(0x06)				// A[6] – Address A+24 = A+4*6  
+	LONG(0x15)				// A[7] – Address A+28 = A+4*7  
+	LONG(0xC2)				// A[8] – Address A+32 = A+4*8 
+	LONG(0x21)				// A[9] – Address A+36 = A+4*9  
+	LONG(0x5B)				// A[10] – Address A+40 = A+4*10  
+	LONG(0x18)				// A[11] – Address A+44 = A+4*11
+
+Start:
+	max_index=11			// The array A has 12 elements
+
+	i=R0
+	j=R1
+	check=R2     			// store status of compare instructions 
+	offset=R3				// offset address of A[j]
+	temp1=R4				// R4, R5 - temporary storage A[j] and A[j+1] 
+	temp2=R5		   
+
+intial_i:
+	ADDC(R31,max_index,i)	// i=max_index
+
+compare1:
+	CMPEQC(i,0,check)		// if i=0 then check=1, else check=0
+	BNE(check,finish,R31)	// if check!=0 then branch to "finish"
+
+intial_j:
+	ADDC(R31,0,j)			// j=0
+
+compare2:
+	CMPLT(j,i,check)		// if j<i then check=0, else check=0
+	BEQ(check,decrease_i,R31)// if check=0 then branch to "decrease_i"
+
+load:
+	MULC(j,4,offset)		// offset=j*4 - transfer word offset j into byte offset j*4
+	LD(offset,A,temp1)		// A[j] --> temp1
+	LD(offset,A+4,temp2)	// A[j+1] --> temp2
+
+compare3:
+	CMPLT(temp1,temp2,check) // if temp1<temp2 then check=1, else check=0
+	BNE(check,increase_j,R31) // if check!=0 then branch to "increase_j" 
+ 
+swap:
+	ST(temp2,A,offset)		// temp2 --> A[j]
+	ST(temp1,A+4,offset)	// temp1 --> A[j+1]
+
+increase_j:
+	ADDC(j,1,j)				// j=j+1
+	BR(compare2)			// branch to "compare2"
+
+decrease_i:
+	SUBC(i,1,i)				// i=i-1
+	BR(compare1)			// branch to "compare1"
+
+finish:
+	HALT()

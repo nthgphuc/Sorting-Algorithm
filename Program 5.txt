@@ -1,0 +1,75 @@
+.include "beta.uasm" 
+	BR(Start)
+	// the array to be sorted
+A:      
+	LONG(0xF6)				// A[0] – Address A 
+	LONG(0x11)				// A[1] – Address A+4 = A+4*1
+	LONG(0xE3)				// A[2] – Address A+8 = A+4*2
+	LONG(0x09)				// A[3] – Address A+12 = A+4*3
+	LONG(0x0A)				// A[4] - Address A+16 = A+4*4
+	LONG(0x1C)				// A[5] – Address A+20 = A+4*5
+	LONG(0x0A)				// A[6] – Address A+24 = A+4*6  
+	LONG(0x15)				// A[7] – Address A+28 = A+4*7  
+	LONG(0xC2)				// A[8] – Address A+32 = A+4*8 
+	LONG(0x21)				// A[9] – Address A+36 = A+4*9  
+	LONG(0x5B)				// A[10] – Address A+40 = A+4*10  
+	LONG(0x18)				// A[11] – Address A+44 = A+4*11
+
+Start:
+	max_index=11			// The array A has 12 elements
+
+	i=R0
+	j=R1
+	k=R2
+	min=R3
+	temp=R4					// temporary storage A[j]
+	save=R5					// storage A[i] in a pass
+	check=R6     			// store status of compare instructions 
+	offset=R7				// offset address of A[j]
+
+intial_i:
+	ADD(R31,R31,i)			// i=0
+
+compare1:
+	CMPLTC(i,max_index,check)// if i<max_index then check=1, else check=0
+	BEQ(check,finish,R31)	// if check=0 then branch to "finish"
+
+initialize_pass:
+	ADDC(i,1,j)				// j=i+1
+	ADD(R31,i,k)			// k=i
+	MULC(i,4,offset)		// offset=i*4 - transfer word offset i into byte offset i*4
+	LD(offset,A,save)		// A[i] --> save
+	ADD(R31,save,min)		// min=save (A[i] --> min)
+
+compare2:
+	CMPLEC(j,max_index,check)// if j<=max_index then check=1, else check=0
+	BEQ(check,swap,R31)		// if check=0 then branch to "swap"
+
+load:
+	MULC(j,4,offset)		// offset=j*4 - transfer word offset j into byte offset j*4
+	LD(offset,A,temp)		// A[j] --> temp
+
+compare3:
+	CMPLT(temp,min,check)	// if temp<min then check=1, else check=0
+	BEQ(check,increase_j,R31)// if check=0 then branch to "increase_j"
+
+select_temp:
+	ADD(R31,temp,min)		// min=temp
+	ADD(R31,j,k)			// k=j
+
+increase_j:
+	ADDC(j,1,j)				// j=j+1
+	BR(compare2)			// branch to "compare2
+
+swap:
+	MULC(i,4,offset)		// offset=i*4 - transfer word offset i into byte offset i*4
+	ST(min,A,offset)		// min --> A[i]
+	MULC(k,4,offset)		// offset=k*4 - transfer word offset k into byte offset k*4
+	ST(save,A,offset)		// save --> A[k]
+
+increase_i:
+	ADDC(i,1,i)				// i=i+1
+	BR(compare1)			// branch to "compare1"
+
+finish:
+	HALT()
